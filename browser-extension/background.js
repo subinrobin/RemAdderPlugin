@@ -33,7 +33,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     // Inject content script if not on RemNote
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ['content.js'],
+      files: ['lib/turndown.js', 'lib/Readability.js', 'content.js'],
     }).catch(() => {}); // May already be injected
 
     // Get selected content from the page
@@ -99,7 +99,7 @@ const messageHandlers = {
     // Inject content script
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ['content.js'],
+      files: ['lib/turndown.js', 'lib/Readability.js', 'content.js'],
     }).catch(() => {});
 
     // Extract page content
