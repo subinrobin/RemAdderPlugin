@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=380, initial-scale=1.0">
+  <title>RemAdder</title>
+  <link rel="stylesheet" href="../styles/shared.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="flex items-center gap-md">
+        <div class="logo-mark">RA</div>
+        <div>
+          <h1 class="popup-title">RemAdder</h1>
+          <div class="flex items-center gap-xs" id="connection-status">
+            <span class="status-dot disconnected" id="status-dot"></span>
+            <span class="text-sm text-muted" id="status-text">Checking...</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-icon btn-ghost" id="settings-btn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+
+    <!-- Provider Selector -->
+    <div class="provider-section glass-panel" id="provider-section">
+      <label class="label">LLM Provider</label>
+      <div class="flex gap-sm">
+        <select class="select" id="provider-select" style="flex:1">
+          <option value="">Select provider...</option>
+          <option value="openai">🟢 OpenAI</option>
+          <option value="gemini">🔵 Google Gemini</option>
+          <option value="claude">🟠 Anthropic Claude</option>
+          <option value="local">🖥️ Local LLM</option>
+        </select>
+        <select class="select" id="model-select" style="flex:1">
+          <option value="">Select model...</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Hero Action -->
+    <button class="btn btn-primary btn-lg btn-full hero-btn" id="summarize-btn">
+      <span class="hero-icon">✨</span>
+      <span id="summarize-text">Summarize This Page</span>
+    </button>
+
+    <!-- Status Area -->
+    <div class="status-area hidden" id="status-area">
+      <div class="flex items-center gap-md">
+        <div class="spinner" id="status-spinner"></div>
+        <div>
+          <div class="font-medium" id="status-title">Processing...</div>
+          <div class="text-sm text-muted" id="status-detail">Extracting page content</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Area -->
+    <div class="error-area hidden" id="error-area">
+      <div class="flex items-center gap-sm">
+        <span>❌</span>
+        <span class="text-sm" id="error-text"></span>
+      </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="activity-section" id="activity-section">
+      <div class="text-sm text-muted" id="activity-log">
+        No recent activity
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="popup-footer">
+      <span class="text-sm text-dim">RemAdder v1.0.0</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

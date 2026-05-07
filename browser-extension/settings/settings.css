@@ -1,0 +1,100 @@
+/* ── Settings Page Styles ── */
+
+body {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  background-image:
+    radial-gradient(ellipse at 30% 0%, rgba(124, 58, 237, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+}
+
+.settings-container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.settings-header {
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.logo-mark {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-gradient);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* ── Sections ── */
+.settings-section {
+  padding: var(--space-xl);
+}
+
+.section-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+}
+
+/* ── Form Groups ── */
+.form-group {
+  margin-bottom: var(--space-lg);
+}
+
+/* ── Provider Config Cards ── */
+.provider-config {
+  padding: var(--space-lg);
+  margin-top: var(--space-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: none;
+}
+
+.provider-config.active {
+  display: block;
+  animation: fadeIn var(--transition-normal) forwards;
+}
+
+.provider-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+}
+
+/* ── Test Button ── */
+.test-btn {
+  margin-top: var(--space-sm);
+}
+
+.test-result {
+  display: inline-block;
+  margin-left: var(--space-sm);
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-normal);
+}
+
+.test-result.success {
+  color: var(--color-success);
+}
+
+.test-result.error {
+  color: var(--color-error);
+}
+
+.test-result.loading {
+  color: var(--text-muted);
+}

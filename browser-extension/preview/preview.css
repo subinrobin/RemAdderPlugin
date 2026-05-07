@@ -1,0 +1,270 @@
+/* ── Preview Page Styles ── */
+
+body {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  background-image:
+    radial-gradient(ellipse at 10% 10%, rgba(124, 58, 237, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 90%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+}
+
+.preview-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding-bottom: 100px;
+}
+
+/* ── Header ── */
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  gap: var(--space-lg);
+}
+
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-gradient);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.preview-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.preview-url {
+  display: block;
+  text-decoration: none;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
+.preview-url:hover {
+  color: var(--accent-blue);
+}
+
+/* ── Path Section ── */
+.path-section {
+  padding: var(--space-lg);
+}
+
+.path-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.path-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  cursor: default;
+}
+
+.path-separator {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ── Cards Section ── */
+.cards-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* ── Flashcard ── */
+.flashcard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--fc-basic);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  position: relative;
+  transition: all var(--transition-normal);
+  animation: cardEntrance var(--transition-slow) backwards;
+}
+
+.flashcard:hover {
+  border-color: var(--border-default);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.flashcard.type-cloze {
+  border-left-color: var(--fc-cloze);
+}
+
+.flashcard.type-bidirectional {
+  border-left-color: var(--fc-bidirectional);
+}
+
+.flashcard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.flashcard-type {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.type-basic .flashcard-type { color: var(--fc-basic); }
+.type-cloze .flashcard-type { color: var(--fc-cloze); }
+.type-bidirectional .flashcard-type { color: var(--fc-bidirectional); }
+
+.flashcard-actions {
+  display: flex;
+  gap: var(--space-xs);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.flashcard:hover .flashcard-actions {
+  opacity: 1;
+}
+
+.flashcard-actions button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-fast);
+}
+
+.flashcard-actions button:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.05);
+}
+
+.flashcard-actions .delete-btn:hover {
+  color: var(--color-error);
+}
+
+/* Card content */
+.flashcard-front {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.flashcard-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--space-sm) 0;
+}
+
+.flashcard-back {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.flashcard-cloze {
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.cloze-highlight {
+  background: var(--fc-cloze-bg);
+  color: var(--fc-cloze);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px dashed rgba(245, 158, 11, 0.3);
+}
+
+/* Editable state */
+.flashcard.editing {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+.flashcard .edit-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  resize: vertical;
+  min-height: 36px;
+  outline: none;
+}
+
+.flashcard .edit-input:focus {
+  border-color: var(--border-focus);
+}
+
+/* Staggered animation */
+.flashcard:nth-child(1) { animation-delay: 0ms; }
+.flashcard:nth-child(2) { animation-delay: 50ms; }
+.flashcard:nth-child(3) { animation-delay: 100ms; }
+.flashcard:nth-child(4) { animation-delay: 150ms; }
+.flashcard:nth-child(5) { animation-delay: 200ms; }
+.flashcard:nth-child(6) { animation-delay: 250ms; }
+.flashcard:nth-child(7) { animation-delay: 300ms; }
+.flashcard:nth-child(8) { animation-delay: 350ms; }
+.flashcard:nth-child(9) { animation-delay: 400ms; }
+.flashcard:nth-child(10) { animation-delay: 450ms; }
+
+/* ── Actions Bar ── */
+.actions-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--space-lg) var(--space-xl);
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  max-width: 720px;
+  margin: 0 auto;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  z-index: 100;
+}
+
+/* ── Toast ── */
+.toast-overlay {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+}
+
+/* ── Empty State ── */
+.empty-state {
+  text-align: center;
+  padding: var(--space-3xl);
+  color: var(--text-muted);
+}

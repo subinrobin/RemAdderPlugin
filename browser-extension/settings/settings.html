@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RemAdder — Settings</title>
+  <link rel="stylesheet" href="../styles/shared.css">
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="settings-container">
+    <header class="settings-header">
+      <div class="flex items-center gap-md">
+        <div class="logo-mark">RA</div>
+        <div>
+          <h1 class="text-xl font-semibold">RemAdder Settings</h1>
+          <p class="text-sm text-muted">Configure your LLM providers and RemNote connection</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- LLM Provider Section -->
+    <section class="settings-section glass-panel">
+      <h2 class="section-title">🤖 LLM Configuration</h2>
+
+      <div class="form-group">
+        <label class="label">Active Provider</label>
+        <select class="select" id="active-provider">
+          <option value="">Select provider...</option>
+          <option value="openai">🟢 OpenAI</option>
+          <option value="gemini">🔵 Google Gemini</option>
+          <option value="claude">🟠 Anthropic Claude</option>
+          <option value="local">⚙️ Custom OpenAI-Compatible Endpoint</option>
+        </select>
+      </div>
+
+      <!-- Provider configs -->
+      <div id="provider-configs">
+        <!-- OpenAI -->
+        <div class="provider-config" data-provider="openai">
+          <h3 class="provider-name">🟢 OpenAI</h3>
+          <div class="form-group">
+            <label class="label">API Key</label>
+            <div class="input-group">
+              <input type="password" class="input api-key-input" data-provider="openai" placeholder="sk-...">
+              <button class="input-action toggle-visibility" title="Show/hide">👁️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="label">Model</label>
+            <select class="select model-select" data-provider="openai">
+              <option value="gpt-4o-mini">GPT-4o Mini (Recommended)</option>
+              <option value="gpt-4o">GPT-4o</option>
+              <option value="gpt-4-turbo">GPT-4 Turbo</option>
+            </select>
+          </div>
+          <button class="btn btn-sm test-btn" data-provider="openai">🔗 Test Connection</button>
+          <span class="test-result" data-provider="openai"></span>
+        </div>
+
+        <!-- Gemini -->
+        <div class="provider-config" data-provider="gemini">
+          <h3 class="provider-name">🔵 Google Gemini</h3>
+          <div class="form-group">
+            <label class="label">API Key</label>
+            <div class="input-group">
+              <input type="password" class="input api-key-input" data-provider="gemini" placeholder="AIza...">
+              <button class="input-action toggle-visibility" title="Show/hide">👁️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="label">Model</label>
+            <select class="select model-select" data-provider="gemini">
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended)</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+            </select>
+          </div>
+          <button class="btn btn-sm test-btn" data-provider="gemini">🔗 Test Connection</button>
+          <span class="test-result" data-provider="gemini"></span>
+        </div>
+
+        <!-- Claude -->
+        <div class="provider-config" data-provider="claude">
+          <h3 class="provider-name">🟠 Anthropic Claude</h3>
+          <div class="form-group">
+            <label class="label">API Key</label>
+            <div class="input-group">
+              <input type="password" class="input api-key-input" data-provider="claude" placeholder="sk-ant-...">
+              <button class="input-action toggle-visibility" title="Show/hide">👁️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="label">Model</label>
+            <select class="select model-select" data-provider="claude">
+              <option value="claude-sonnet-4-20250514">Claude Sonnet 4 (Recommended)</option>
+              <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+            </select>
+          </div>
+          <button class="btn btn-sm test-btn" data-provider="claude">🔗 Test Connection</button>
+          <span class="test-result" data-provider="claude"></span>
+        </div>
+
+        <!-- Custom LLM -->
+        <div class="provider-config" data-provider="local">
+          <h3 class="provider-name">⚙️ Custom OpenAI-Compatible</h3>
+          <p class="text-sm text-muted" style="margin-bottom:12px">Works with NVIDIA NIM, LM Studio, Ollama, Groq, and any OpenAI-compatible API.</p>
+          <div class="form-group">
+            <label class="label">Endpoint URL</label>
+            <input type="text" class="input endpoint-input" data-provider="local" placeholder="e.g. https://integrate.api.nvidia.com/v1">
+          </div>
+          <div class="form-group">
+            <label class="label">Model Name (optional)</label>
+            <input type="text" class="input model-name-input" data-provider="local" placeholder="e.g. llama-3.2-3b">
+          </div>
+          <div class="form-group">
+            <label class="label">API Key (if required)</label>
+            <div class="input-group">
+              <input type="password" class="input api-key-input" data-provider="local" placeholder="Optional">
+              <button class="input-action toggle-visibility" title="Show/hide">👁️</button>
+            </div>
+          </div>
+          <button class="btn btn-sm test-btn" data-provider="local">🔗 Test Connection</button>
+          <span class="test-result" data-provider="local"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RemNote Connection -->
+    <section class="settings-section glass-panel">
+      <h2 class="section-title">📝 RemNote Connection</h2>
+      <div class="flex items-center gap-md" style="margin-bottom:12px">
+        <span class="status-dot disconnected" id="remnote-status-dot"></span>
+        <span id="remnote-status-text">Not connected</span>
+        <button class="btn btn-sm" id="check-remnote-btn">Check Connection</button>
+      </div>
+      <p class="text-sm text-muted">
+        Install the <strong>RemAdder Bridge</strong> companion plugin inside RemNote for direct flashcard creation.
+        Without it, flashcards will be copied to clipboard for manual pasting.
+      </p>
+    </section>
+
+    <!-- Save -->
+    <div class="flex justify-center gap-md" style="margin-top:8px">
+      <button class="btn btn-primary btn-lg" id="save-btn">💾 Save Settings</button>
+    </div>
+
+    <div id="save-toast" class="hidden"></div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

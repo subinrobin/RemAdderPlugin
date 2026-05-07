@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RemAdder — Preview Flashcards</title>
+  <link rel="stylesheet" href="../styles/shared.css">
+  <link rel="stylesheet" href="preview.css">
+</head>
+<body>
+  <div class="preview-container">
+    <!-- Header -->
+    <header class="preview-header glass-panel">
+      <div class="flex items-center gap-md" style="flex:1;min-width:0">
+        <div class="logo-mark">RA</div>
+        <div style="min-width:0;flex:1">
+          <h1 class="preview-title truncate" id="source-title">Loading...</h1>
+          <a class="preview-url text-sm text-muted truncate" id="source-url" href="#" target="_blank"></a>
+        </div>
+      </div>
+      <div class="flex items-center gap-md">
+        <span class="badge badge-info" id="card-count-badge">0 cards</span>
+        <div class="flex items-center gap-xs" id="connection-indicator">
+          <span class="status-dot disconnected" id="conn-dot"></span>
+          <span class="text-sm text-muted" id="conn-text">Checking...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Path Selector -->
+    <div class="path-section glass-panel">
+      <label class="label">📁 Target Folder</label>
+      <div class="path-breadcrumb" id="path-breadcrumb">
+        <!-- Populated by JS -->
+      </div>
+      <input type="text" class="input" id="path-input" placeholder="e.g. Computer Science > Algorithms > Sorting" style="margin-top:8px">
+    </div>
+
+    <!-- Flashcard List -->
+    <div class="cards-section" id="cards-section">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-bar glass-panel">
+      <button class="btn btn-primary btn-lg" id="add-btn" style="flex:1">
+        <span>⚡</span> Add to RemNote
+      </button>
+      <button class="btn btn-secondary btn-lg" id="copy-btn">
+        <span>📋</span> Copy
+      </button>
+    </div>
+  </div>
+
+  <script src="preview.js"></script>
+</body>
+</html>
