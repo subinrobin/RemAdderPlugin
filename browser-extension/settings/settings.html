@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
   <link rel="stylesheet" href="../styles/shared.css">
   <link rel="stylesheet" href="settings.css">
 </head>
+
 <body>
   <div class="settings-container">
     <header class="settings-header">
@@ -48,11 +50,15 @@
           </div>
           <div class="form-group">
             <label class="label">Model</label>
-            <select class="select model-select" data-provider="openai">
-              <option value="gpt-4o-mini">GPT-4o Mini (Recommended)</option>
-              <option value="gpt-4o">GPT-4o</option>
-              <option value="gpt-4-turbo">GPT-4 Turbo</option>
-            </select>
+            <div class="flex gap-sm">
+              <select class="select model-select" data-provider="openai" style="flex:1">
+                <option value="gpt-4o-mini">GPT-4o Mini (Recommended)</option>
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+              </select>
+              <button class="btn btn-sm btn-outline fetch-models-btn" data-provider="openai"
+                title="Fetch models from API">🔄</button>
+            </div>
           </div>
           <button class="btn btn-sm test-btn" data-provider="openai">🔗 Test Connection</button>
           <span class="test-result" data-provider="openai"></span>
@@ -70,10 +76,14 @@
           </div>
           <div class="form-group">
             <label class="label">Model</label>
-            <select class="select model-select" data-provider="gemini">
-              <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended)</option>
-              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-            </select>
+            <div class="flex gap-sm">
+              <select class="select model-select" data-provider="gemini" style="flex:1">
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended)</option>
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              </select>
+              <button class="btn btn-sm btn-outline fetch-models-btn" data-provider="gemini"
+                title="Fetch models from API">🔄</button>
+            </div>
           </div>
           <button class="btn btn-sm test-btn" data-provider="gemini">🔗 Test Connection</button>
           <span class="test-result" data-provider="gemini"></span>
@@ -91,10 +101,14 @@
           </div>
           <div class="form-group">
             <label class="label">Model</label>
-            <select class="select model-select" data-provider="claude">
-              <option value="claude-sonnet-4-20250514">Claude Sonnet 4 (Recommended)</option>
-              <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
-            </select>
+            <div class="flex gap-sm">
+              <select class="select model-select" data-provider="claude" style="flex:1">
+                <option value="claude-sonnet-4-20250514">Claude Sonnet 4 (Recommended)</option>
+                <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+              </select>
+              <button class="btn btn-sm btn-outline fetch-models-btn" data-provider="claude"
+                title="Fetch models from API">🔄</button>
+            </div>
           </div>
           <button class="btn btn-sm test-btn" data-provider="claude">🔗 Test Connection</button>
           <span class="test-result" data-provider="claude"></span>
@@ -103,20 +117,28 @@
         <!-- Custom LLM -->
         <div class="provider-config" data-provider="local">
           <h3 class="provider-name">⚙️ Custom OpenAI-Compatible</h3>
-          <p class="text-sm text-muted" style="margin-bottom:12px">Works with NVIDIA NIM, LM Studio, Ollama, Groq, and any OpenAI-compatible API.</p>
+          <p class="text-sm text-muted" style="margin-bottom:12px">Works with NVIDIA NIM, LM Studio, Ollama, Groq, and
+            any OpenAI-compatible API.</p>
           <div class="form-group">
             <label class="label">Endpoint URL</label>
-            <input type="text" class="input endpoint-input" data-provider="local" placeholder="e.g. https://integrate.api.nvidia.com/v1">
-          </div>
-          <div class="form-group">
-            <label class="label">Model Name (optional)</label>
-            <input type="text" class="input model-name-input" data-provider="local" placeholder="e.g. llama-3.2-3b">
+            <input type="text" class="input endpoint-input" data-provider="local"
+              placeholder="e.g. https://integrate.api.nvidia.com/v1">
           </div>
           <div class="form-group">
             <label class="label">API Key (if required)</label>
             <div class="input-group">
               <input type="password" class="input api-key-input" data-provider="local" placeholder="Optional">
               <button class="input-action toggle-visibility" title="Show/hide">👁️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="label">Model</label>
+            <div class="flex gap-sm">
+              <select class="select model-select" data-provider="local" style="flex:1">
+                <option value="">Select a model...</option>
+              </select>
+              <button class="btn btn-sm btn-outline fetch-models-btn" data-provider="local"
+                title="Fetch models from API">🔄</button>
             </div>
           </div>
           <button class="btn btn-sm test-btn" data-provider="local">🔗 Test Connection</button>
@@ -149,4 +171,5 @@
 
   <script src="settings.js"></script>
 </body>
+
 </html>

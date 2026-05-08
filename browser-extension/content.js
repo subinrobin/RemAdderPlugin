@@ -50,11 +50,44 @@
   // ══════════════════════════════════════
 
   function extractPageContent() {
-    const title = getTitle();
     const url = window.location.href;
-    const content = getMainContent();
     const metadata = getMetadata();
-    return { title, url, content, metadata };
+    
+    try {
+      // Clone the document to avoid modifying the visible page
+      const documentClone = document.cloneNode(true);
+      
+      // Parse with Mozilla Readability
+      const reader = new Readability(documentClone);
+      const article = reader.parse();
+      
+      if (!article || !article.content) {
+        throw new Error('Readability failed to parse');
+      }
+
+      // Convert HTML to Markdown
+      const turndownService = new TurndownService({
+        headingStyle: 'atx',
+        codeBlockStyle: 'fenced'
+      });
+      const markdownContent = turndownService.turndown(article.content);
+      
+      return { 
+        title: article.title || getTitle(), 
+        url, 
+        content: markdownContent, 
+        metadata 
+      };
+    } catch (e) {
+      console.error('Readability extraction failed, falling back...', e);
+      // Fallback
+      return { 
+        title: getTitle(), 
+        url, 
+        content: document.body.innerText, 
+        metadata 
+      };
+    }
   }
 
   function getSelectedContent() {
@@ -93,53 +126,6 @@
     const desc = document.querySelector('meta[name="description"], meta[property="og:description"]');
     if (desc) meta.description = desc.content;
     return meta;
-  }
-
-  function getMainContent() {
-    // Priority: semantic containers
-    const selectors = ['article', '[role="main"]', 'main', '.post-content', '.article-content', '.entry-content'];
-    for (const sel of selectors) {
-      const el = document.querySelector(sel);
-      if (el) {
-        const text = cleanText(el);
-        if (text.length > 200) return text;
-      }
-    }
-
-    // Fallback: score divs by text density
-    let bestEl = null, bestScore = 0;
-    document.querySelectorAll('div, section').forEach(el => {
-      if (isBoilerplate(el)) return;
-      const text = el.textContent || '';
-      const len = text.trim().length;
-      const paragraphs = el.querySelectorAll('p').length;
-      const score = len + paragraphs * 50;
-      if (score > bestScore && len > 200) {
-        bestScore = score;
-        bestEl = el;
-      }
-    });
-
-    return bestEl ? cleanText(bestEl) : cleanText(document.body);
-  }
-
-  function isBoilerplate(el) {
-    const tag = el.tagName.toLowerCase();
-    if (['nav', 'footer', 'header', 'aside'].includes(tag)) return true;
-    const combined = `${el.id} ${el.className}`.toLowerCase();
-    return /nav|sidebar|footer|header|menu|comment|widget|social|share|ad[-_s]|cookie|popup|modal|newsletter/.test(combined);
-  }
-
-  function cleanText(el) {
-    if (!el) return '';
-    // Clone to avoid modifying the page
-    const clone = el.cloneNode(true);
-    // Remove unwanted elements
-    clone.querySelectorAll('script, style, noscript, svg, iframe, nav, footer, [role="navigation"], .ad, .advertisement').forEach(e => e.remove());
-
-    const text = clone.textContent || '';
-    // Clean up whitespace
-    return text.replace(/\s+/g, ' ').replace(/\n\s*\n/g, '\n\n').trim();
   }
 
   // ══════════════════════════════════════

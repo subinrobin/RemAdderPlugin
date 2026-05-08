@@ -57,22 +57,16 @@ const LLMClient = {
    * @returns {Promise<string>} - LLM response text
    */
   async sendPrompt(config, systemPrompt, userContent) {
-    const { provider, apiKey, model, endpoint } = config;
-
-    // Truncate content to avoid token limits
-    const maxChars = this._getMaxChars(provider, model);
-    const truncatedContent = userContent.length > maxChars
-      ? userContent.substring(0, maxChars) + '\n\n[Content truncated due to length]'
-      : userContent;
+    const { provider, apiKey, model, endpoint, tokenLimit } = config;
 
     switch (provider) {
       case 'openai':
       case 'local':
-        return this._callOpenAICompatible(config, systemPrompt, truncatedContent);
+        return this._callOpenAICompatible(config, systemPrompt, userContent);
       case 'gemini':
-        return this._callGemini(config, systemPrompt, truncatedContent);
+        return this._callGemini(config, systemPrompt, userContent);
       case 'claude':
-        return this._callClaude(config, systemPrompt, truncatedContent);
+        return this._callClaude(config, systemPrompt, userContent);
       default:
         throw new Error(`Unknown provider: ${provider}`);
     }
@@ -101,6 +95,70 @@ const LLMClient = {
         message: this._formatError(config.provider, error),
       };
     }
+  },
+
+  /**
+   * Fetch available models from the provider's API.
+   * Falls back to hardcoded models if the API call fails or is not supported.
+   * @param {object} config - { provider, apiKey, endpoint? }
+   * @returns {Promise<Array<{id: string, name: string}>>}
+   */
+  async fetchModels(config) {
+    const { provider, apiKey, endpoint } = config;
+    try {
+      if (provider === 'openai' || provider === 'local') {
+        let url;
+        if (provider === 'local') {
+          if (!endpoint) return this.PROVIDERS.local.models;
+          let base = endpoint.replace(/\/+$/, '');
+          if (!base.match(/\/v\d+$/)) base += '/v1';
+          url = `${base}/models`;
+        } else {
+          url = 'https://api.openai.com/v1/models';
+        }
+
+        const headers = {};
+        if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+        const response = await fetch(url, { headers });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return (data.data || []).map(m => ({ id: m.id, name: m.id }));
+      }
+
+      if (provider === 'gemini') {
+        if (!apiKey) return this.PROVIDERS.gemini.models;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return (data.models || [])
+          .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+          .map(m => {
+            const id = m.name.replace('models/', '');
+            return { id, name: m.displayName || id, tokenLimit: m.inputTokenLimit };
+          });
+      }
+
+      if (provider === 'claude') {
+        if (!apiKey) return this.PROVIDERS.claude.models;
+        const response = await fetch('https://api.anthropic.com/v1/models', {
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return (data.data || []).map(m => ({ id: m.id, name: m.display_name || m.id }));
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch models for ${provider}:`, error);
+      // Fallback to defaults
+    }
+
+    return this.PROVIDERS[provider]?.models || [];
   },
 
   /**
@@ -229,7 +287,7 @@ const LLMClient = {
   /**
    * Estimate max characters based on provider/model token limits.
    */
-  _getMaxChars(provider, model) {
+  getMaxChars(provider, model, dynamicTokenLimit) {
     // Rough estimate: 1 token ≈ 4 chars, reserve 4096 tokens for output
     const limits = {
       'gpt-4o-mini': 128000,
@@ -241,7 +299,7 @@ const LLMClient = {
       'claude-3-5-haiku-20241022': 200000,
     };
 
-    const tokenLimit = limits[model] || 32000;
+    const tokenLimit = dynamicTokenLimit || limits[model] || 32000;
     // Use 60% of token limit for input, convert to chars
     return Math.floor(tokenLimit * 0.6 * 4);
   },

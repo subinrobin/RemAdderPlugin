@@ -3,7 +3,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const providerSelect = document.getElementById('provider-select');
+  const providerDisplay = document.getElementById('provider-display');
   const modelSelect = document.getElementById('model-select');
   const summarizeBtn = document.getElementById('summarize-btn');
   const summarizeText = document.getElementById('summarize-text');
@@ -35,14 +35,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     local: [],
   };
 
+  const PROVIDER_NAMES = {
+    openai: '🟢 OpenAI',
+    gemini: '🔵 Google Gemini',
+    claude: '🟠 Anthropic Claude',
+    local: '⚙️ Custom Endpoint'
+  };
+
+  let currentProvider = '';
+
   // ── Load saved config ──
   const config = await sendMessage({ type: 'REMADDER_GET_CONFIG' });
 
   if (config?.activeProvider) {
-    providerSelect.value = config.activeProvider;
-    updateModelDropdown(config.activeProvider);
-    const provConf = config.providers?.[config.activeProvider];
-    if (provConf?.model) modelSelect.value = provConf.model;
+    currentProvider = config.activeProvider;
+    if (providerDisplay) {
+      providerDisplay.value = PROVIDER_NAMES[currentProvider] || currentProvider;
+    }
+    updateModelDropdown(currentProvider);
+  } else {
+    if (providerDisplay) {
+      providerDisplay.value = 'Not configured';
+    }
   }
 
   // ── Check plugin connection ──
@@ -56,14 +70,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Event Listeners ──
 
-  providerSelect.addEventListener('change', async () => {
-    const provider = providerSelect.value;
-    updateModelDropdown(provider);
-    await saveProviderSelection(provider, modelSelect.value);
-  });
-
   modelSelect.addEventListener('change', async () => {
-    await saveProviderSelection(providerSelect.value, modelSelect.value);
+    if (currentProvider) {
+      await saveProviderSelection(currentProvider, modelSelect.value);
+    }
   });
 
   settingsBtn.addEventListener('click', () => {
@@ -75,22 +85,66 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── Functions ──
 
   function updateModelDropdown(provider) {
-    modelSelect.innerHTML = '';
-    const models = MODELS[provider] || [];
+    modelSelect.innerHTML = '<option value="">Loading models...</option>';
+    modelSelect.disabled = true;
 
-    if (provider === 'local') {
-      const opt = document.createElement('option');
-      opt.value = 'custom';
-      opt.textContent = 'Custom (set in settings)';
-      modelSelect.appendChild(opt);
-      return;
-    }
+    // Fetch config for credentials
+    sendMessage({ type: 'REMADDER_GET_CONFIG' }).then(async (config) => {
+      const provConf = config?.providers?.[provider] || {};
+      
+      let models = MODELS[provider] || [];
+      
+      try {
+        const result = await sendMessage({
+          type: 'REMADDER_FETCH_MODELS',
+          payload: {
+            provider,
+            apiKey: provConf.apiKey || '',
+            endpoint: provConf.endpoint || ''
+          }
+        });
+        if (result.models && result.models.length > 0) {
+          models = result.models;
+        }
+      } catch (err) {
+        console.warn('Could not fetch models dynamically:', err);
+      }
 
-    models.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      opt.textContent = m.name;
-      modelSelect.appendChild(opt);
+      modelSelect.innerHTML = '';
+      
+      if (models.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = 'custom';
+        opt.textContent = 'Custom (set in settings)';
+        modelSelect.appendChild(opt);
+      } else {
+        models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.tokenLimit 
+            ? `${m.name} (${m.tokenLimit >= 1000000 ? (m.tokenLimit/1000000).toFixed(1).replace(/\\.0$/, '') + 'M' : Math.round(m.tokenLimit/1000) + 'k'} tokens)` 
+            : m.name;
+          if (m.tokenLimit) opt.dataset.tokenLimit = m.tokenLimit;
+          modelSelect.appendChild(opt);
+        });
+      }
+
+      // Restore selected model from config if it exists
+      if (provConf.model) {
+        // If the model is not in the list, add it
+        if (!Array.from(modelSelect.options).some(o => o.value === provConf.model)) {
+          const opt = document.createElement('option');
+          opt.value = provConf.model;
+          opt.textContent = provConf.tokenLimit 
+            ? `${provConf.model} (${provConf.tokenLimit >= 1000000 ? (provConf.tokenLimit/1000000).toFixed(1).replace(/\\.0$/, '') + 'M' : Math.round(provConf.tokenLimit/1000) + 'k'} tokens)` 
+            : provConf.model;
+          if (provConf.tokenLimit) opt.dataset.tokenLimit = provConf.tokenLimit;
+          modelSelect.appendChild(opt);
+        }
+        modelSelect.value = provConf.model;
+      }
+      
+      modelSelect.disabled = false;
     });
   }
 
@@ -100,6 +154,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!config.providers) config.providers = {};
     if (!config.providers[provider]) config.providers[provider] = {};
     config.providers[provider].model = model;
+
+    const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+    const tokenLimit = selectedOption?.dataset?.tokenLimit ? parseInt(selectedOption.dataset.tokenLimit, 10) : undefined;
+    config.providers[provider].tokenLimit = tokenLimit;
+
     await sendMessage({ type: 'REMADDER_SAVE_CONFIG', payload: config });
   }
 
@@ -107,15 +166,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     hideError();
 
     // Validate config
-    if (!providerSelect.value) {
-      showError('Please select an LLM provider.');
+    if (!currentProvider) {
+      showError('Please select an LLM provider in settings.');
       return;
     }
 
     // Check if API key is set
     const currentConfig = await sendMessage({ type: 'REMADDER_GET_CONFIG' });
-    const provConf = currentConfig?.providers?.[providerSelect.value];
-    if (providerSelect.value !== 'local' && (!provConf || !provConf.apiKey)) {
+    const provConf = currentConfig?.providers?.[currentProvider];
+    if (currentProvider !== 'local' && (!provConf || !provConf.apiKey)) {
       showError('API key not set. Please configure in settings.');
       return;
     }
@@ -126,7 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     showStatus('Extracting page content...', 'Reading the current page');
 
     try {
-      updateStatus('Generating flashcards...', `Using ${providerSelect.options[providerSelect.selectedIndex].text}`);
+      updateStatus('Generating flashcards...', `Using ${PROVIDER_NAMES[currentProvider] || currentProvider}`);
 
       const result = await sendMessage({ type: 'REMADDER_SUMMARIZE_PAGE' });
 

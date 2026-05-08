@@ -23,13 +23,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (keyInput && conf.apiKey) keyInput.value = conf.apiKey;
 
       const modelSelect = document.querySelector(`.model-select[data-provider="${provider}"]`);
-      if (modelSelect && conf.model) modelSelect.value = conf.model;
+      if (modelSelect && conf.model) {
+        // If the saved model isn't in the options yet, add it
+        if (!Array.from(modelSelect.options).some(opt => opt.value === conf.model)) {
+          const opt = document.createElement('option');
+          opt.value = conf.model;
+          opt.textContent = conf.tokenLimit 
+            ? `${conf.model} (${conf.tokenLimit >= 1000000 ? (conf.tokenLimit/1000000).toFixed(1).replace(/\\.0$/, '') + 'M' : Math.round(conf.tokenLimit/1000) + 'k'} tokens)` 
+            : conf.model;
+          if (conf.tokenLimit) opt.dataset.tokenLimit = conf.tokenLimit;
+          modelSelect.appendChild(opt);
+        }
+        modelSelect.value = conf.model;
+      }
 
       const endpointInput = document.querySelector(`.endpoint-input[data-provider="${provider}"]`);
       if (endpointInput && conf.endpoint) endpointInput.value = conf.endpoint;
-
-      const modelNameInput = document.querySelector(`.model-name-input[data-provider="${provider}"]`);
-      if (modelNameInput && conf.model) modelNameInput.value = conf.model;
     });
   }
 
@@ -53,6 +62,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.addEventListener('click', async () => {
       const provider = btn.dataset.provider;
       await testConnection(provider);
+    });
+  });
+
+  // Fetch models buttons
+  document.querySelectorAll('.fetch-models-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault(); // In case it's in a form
+      const provider = btn.dataset.provider;
+      await fetchModels(provider);
     });
   });
 
@@ -80,14 +98,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       const keyInput = document.querySelector(`.api-key-input[data-provider="${provider}"]`);
       const modelSelect = document.querySelector(`.model-select[data-provider="${provider}"]`);
       const endpointInput = document.querySelector(`.endpoint-input[data-provider="${provider}"]`);
-      const modelNameInput = document.querySelector(`.model-name-input[data-provider="${provider}"]`);
+
+      const selectedOption = modelSelect?.options[modelSelect.selectedIndex];
+      const tokenLimit = selectedOption?.dataset?.tokenLimit ? parseInt(selectedOption.dataset.tokenLimit, 10) : undefined;
 
       newConfig.providers[provider] = {
         apiKey: keyInput?.value || '',
-        model: provider === 'local'
-          ? (modelNameInput?.value || '')
-          : (modelSelect?.value || ''),
+        model: modelSelect?.value || '',
         endpoint: endpointInput?.value || '',
+        tokenLimit: tokenLimit,
       };
     });
 
@@ -107,14 +126,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const keyInput = document.querySelector(`.api-key-input[data-provider="${provider}"]`);
     const modelSelect = document.querySelector(`.model-select[data-provider="${provider}"]`);
     const endpointInput = document.querySelector(`.endpoint-input[data-provider="${provider}"]`);
-    const modelNameInput = document.querySelector(`.model-name-input[data-provider="${provider}"]`);
 
     const testConfig = {
       provider,
       apiKey: keyInput?.value || '',
-      model: provider === 'local'
-        ? (modelNameInput?.value || '')
-        : (modelSelect?.value || ''),
+      model: modelSelect?.value || '',
       endpoint: endpointInput?.value || '',
     };
 
@@ -127,6 +143,57 @@ document.addEventListener('DOMContentLoaded', async () => {
       resultEl.className = 'test-result error';
     }
 
+    btn.disabled = false;
+  }
+
+  async function fetchModels(provider) {
+    const btn = document.querySelector(`.fetch-models-btn[data-provider="${provider}"]`);
+    const select = document.querySelector(`.model-select[data-provider="${provider}"]`);
+    const keyInput = document.querySelector(`.api-key-input[data-provider="${provider}"]`);
+    const endpointInput = document.querySelector(`.endpoint-input[data-provider="${provider}"]`);
+
+    const originalText = btn.textContent;
+    btn.textContent = '⏳';
+    btn.disabled = true;
+
+    try {
+      const result = await sendMessage({
+        type: 'REMADDER_FETCH_MODELS',
+        payload: {
+          provider,
+          apiKey: keyInput?.value || '',
+          endpoint: endpointInput?.value || ''
+        }
+      });
+
+      if (result.models && result.models.length > 0) {
+        const currentValue = select.value;
+        select.innerHTML = ''; // clear current options
+
+        result.models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.tokenLimit 
+            ? `${m.name} (${m.tokenLimit >= 1000000 ? (m.tokenLimit/1000000).toFixed(1).replace(/\\.0$/, '') + 'M' : Math.round(m.tokenLimit/1000) + 'k'} tokens)` 
+            : m.name;
+          if (m.tokenLimit) opt.dataset.tokenLimit = m.tokenLimit;
+          select.appendChild(opt);
+        });
+
+        // Restore previous value if it exists in the new list
+        if (result.models.some(m => m.id === currentValue)) {
+          select.value = currentValue;
+        }
+
+        showToast(`Fetched ${result.models.length} models successfully!`);
+      } else {
+        showToast('No models returned from the API.');
+      }
+    } catch (error) {
+      showToast('Error fetching models: ' + error.message);
+    }
+
+    btn.textContent = originalText;
     btn.disabled = false;
   }
 

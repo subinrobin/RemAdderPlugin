@@ -30,13 +30,7 @@
     <div class="provider-section glass-panel" id="provider-section">
       <label class="label">LLM Provider</label>
       <div class="flex gap-sm">
-        <select class="select" id="provider-select" style="flex:1">
-          <option value="">Select provider...</option>
-          <option value="openai">🟢 OpenAI</option>
-          <option value="gemini">🔵 Google Gemini</option>
-          <option value="claude">🟠 Anthropic Claude</option>
-          <option value="local">🖥️ Local LLM</option>
-        </select>
+        <input type="text" class="select" id="provider-display" readonly style="flex:1; cursor: default; background-color: rgba(255, 255, 255, 0.05); user-select: none;" value="Loading...">
         <select class="select" id="model-select" style="flex:1">
           <option value="">Select model...</option>
         </select>
