@@ -195,6 +195,15 @@ const messageHandlers = {
     RemNoteBridge.handlePluginResponse(message);
     return { handled: true };
   },
+
+  /**
+   * Fetch models from provider API.
+   */
+  async 'REMADDER_FETCH_MODELS'(message) {
+    const { provider, apiKey, endpoint } = message.payload;
+    const models = await LLMClient.fetchModels({ provider, apiKey, endpoint });
+    return { models };
+  },
 };
 
 // ══════════════════════════════════════
@@ -219,6 +228,7 @@ async function getLLMConfig() {
     apiKey: providerConfig.apiKey || '',
     model: providerConfig.model || '',
     endpoint: providerConfig.endpoint || '',
+    tokenLimit: providerConfig.tokenLimit,
   };
 }
 
