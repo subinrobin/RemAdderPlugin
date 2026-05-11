@@ -122,6 +122,13 @@ const messageHandlers = {
     // Store for preview page
     await chrome.storage.local.set({ pendingFlashcards: flashcardData });
 
+    // Save activity log
+    const activity = `${flashcardData.flashcards.length} cards from "${flashcardData.sourceTitle}" — just now`;
+    await chrome.storage.local.set({ remadderActivity: activity });
+
+    // Open preview page
+    chrome.tabs.create({ url: chrome.runtime.getURL('preview/preview.html') });
+
     return { success: true, flashcardData };
   },
 

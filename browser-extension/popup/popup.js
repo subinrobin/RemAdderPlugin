@@ -193,14 +193,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       updateStatus('Opening preview...', `${result.flashcardData.flashcards.length} flashcards generated`);
 
-      // Save activity
-      const activity = `${result.flashcardData.flashcards.length} cards from "${result.flashcardData.sourceTitle}" — just now`;
-      await chrome.storage.local.set({ remadderActivity: activity });
-
-      // Open preview page
-      chrome.tabs.create({ url: chrome.runtime.getURL('preview/preview.html') });
-
-      // Close popup after a short delay
+      // Note: background script handles storage updates and tab creation
+      // to ensure persistence if this popup is closed.
       setTimeout(() => window.close(), 500);
 
     } catch (error) {

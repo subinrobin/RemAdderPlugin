@@ -4,41 +4,39 @@
  */
 
 const FlashcardGenerator = {
-  SYSTEM_PROMPT: `You are an expert educator and spaced-repetition flashcard creator. Analyze web page content and create high-quality flashcards for long-term retention.
+  SYSTEM_PROMPT: `You are an expert software engineering mentor and spaced-repetition expert. Analyze technical articles, blog posts, documentation, and code blocks to create high-quality flashcards for long-term retention.
 
 INSTRUCTIONS:
-1. Identify important concepts, definitions, facts, processes worth remembering.
-2. Create flashcards using a mix of types:
-   - "basic": Question-answer for definitions, facts, concepts
-   - "cloze": Fill-in-the-blank for key terms within statements
-   - "bidirectional": Two-way cards for terms recalled both directions
-3. Auto-select best type per item. Keep cards concise but complete.
-4. Suggest a hierarchical folder path (e.g., ["Computer Science", "Algorithms"]).
-5. Generate 3-15 flashcards depending on content richness.
+1. Identify critical architectural patterns, implementation details, API usage, code syntax, and core technical definitions.
+2. Create flashcards using these types ONLY:
+   - "basic": Question-answer for definitions, architectural trade-offs, and conceptual logic.
+   - "bidirectional": Two-way cards for terms, API names, or syntax that should be recalled in both directions.
+3. Do NOT create "fill-in-the-blank" or "cloze" cards. This is for deep technical understanding, not rote exam prep.
+4. Keep cards concise but technically precise. Use markdown for code snippets in the 'back' or 'front' fields.
+5. Suggest a hierarchical folder path (e.g., ["Software Engineering", "System Design", "Caching"]).
+6. Generate 5-15 flashcards depending on technical depth.
 
 OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
 {
   "suggestedPath": ["Topic", "Subtopic"],
   "flashcards": [
-    { "type": "basic", "front": "What is X?", "back": "X is..." },
-    { "type": "cloze", "text": "X involves {{key term}} which..." },
+    { "type": "basic", "front": "What are the trade-offs of X?", "back": "1. Pros...\n2. Cons..." },
     { "type": "bidirectional", "front": "Term", "back": "Definition" }
   ]
 }`,
 
-  CONSOLIDATION_PROMPT: `You are an expert educator. I have a list of flashcards generated from different sections of the same document. Some flashcards might cover the exact same concept or overlap heavily.
+  CONSOLIDATION_PROMPT: `You are an expert technical mentor. I have a list of flashcards generated from different sections of the same technical document. Some flashcards might cover the exact same architectural pattern or concept.
 
 INSTRUCTIONS:
 1. Review the list of flashcards carefully.
 2. Remove any exact duplicates or flashcards that are essentially asking the same thing. Keep only the highest quality, most comprehensive version of each concept.
-3. Keep all unique concepts.
+3. Keep all unique technical concepts.
 4. Return the consolidated list of flashcards in the EXACT same JSON format.
 
 OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
 {
   "flashcards": [
-    { "type": "basic", "front": "What is X?", "back": "X is..." },
-    { "type": "cloze", "text": "X involves {{key term}} which..." }
+    { "type": "basic", "front": "What is X?", "back": "X is..." }
   ]
 }`,
 
@@ -55,7 +53,7 @@ OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
   chunkText(text, maxChars) {
     if (!text) return [];
     if (text.length <= maxChars) return [text];
-    
+
     const paragraphs = text.split(/\n\n+/);
     const chunks = [];
     let currentChunk = '';
@@ -65,24 +63,24 @@ OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
         if (currentChunk) chunks.push(currentChunk.trim());
         // If a single paragraph is longer than maxChars, we still push it (or we could sub-split, but keep it simple)
         if (p.length > maxChars) {
-           chunks.push(p.trim());
-           currentChunk = '';
+          chunks.push(p.trim());
+          currentChunk = '';
         } else {
-           currentChunk = p;
+          currentChunk = p;
         }
       } else {
         currentChunk = currentChunk ? currentChunk + '\n\n' + p : p;
       }
     }
     if (currentChunk) chunks.push(currentChunk.trim());
-    
+
     return chunks;
   },
 
   async _generate(basePrompt, textContent, llmConfig, sourceData) {
     const { provider, model, tokenLimit } = llmConfig;
     const maxChars = LLMClient.getMaxChars(provider, model, tokenLimit);
-    
+
     // Estimate overhead for base prompt and system prompt
     const overhead = basePrompt.length + 500;
     const availableChars = Math.max(1000, maxChars - overhead);
@@ -101,7 +99,7 @@ OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
     });
 
     const results = await Promise.all(promises);
-    
+
     // Reduce: Merge results
     let mergedFlashcards = [];
     let suggestedPath = ['Imported Notes'];
@@ -187,9 +185,7 @@ OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
     if (type === 'basic' && card.front && card.back) {
       return { type: 'basic', front: card.front.trim(), back: card.back.trim() };
     }
-    if (type === 'cloze' && card.text && card.text.includes('{{') && card.text.includes('}}')) {
-      return { type: 'cloze', text: card.text.trim() };
-    }
+
     if (type === 'bidirectional' && card.front && card.back) {
       return { type: 'bidirectional', front: card.front.trim(), back: card.back.trim() };
     }
