@@ -6,48 +6,9 @@
 const LLMClient = {
   /**
    * Available providers with their models.
-   * Used to populate dropdowns in settings.
+   * Linked from centralized properties.
    */
-  PROVIDERS: {
-    openai: {
-      id: 'openai',
-      name: 'OpenAI',
-      icon: '🟢',
-      models: [
-        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', default: true },
-        { id: 'gpt-4o', name: 'GPT-4o' },
-        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-      ],
-      endpoint: 'https://api.openai.com/v1/chat/completions',
-    },
-    gemini: {
-      id: 'gemini',
-      name: 'Google Gemini',
-      icon: '🔵',
-      models: [
-        { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', default: true },
-        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-      ],
-      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/',
-    },
-    claude: {
-      id: 'claude',
-      name: 'Anthropic Claude',
-      icon: '🟠',
-      models: [
-        { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', default: true },
-        { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
-      ],
-      endpoint: 'https://api.anthropic.com/v1/messages',
-    },
-    local: {
-      id: 'local',
-      name: 'Local LLM',
-      icon: '🖥️',
-      models: [],
-      endpoint: '', // User configured
-    },
-  },
+  PROVIDERS: AppProperties.providers,
 
   /**
    * Send a prompt to the configured LLM provider.
@@ -114,7 +75,7 @@ const LLMClient = {
           if (!base.match(/\/v\d+$/)) base += '/v1';
           url = `${base}/models`;
         } else {
-          url = 'https://api.openai.com/v1/models';
+          url = AppProperties.endpoints.openai.models;
         }
 
         const headers = {};
@@ -128,7 +89,7 @@ const LLMClient = {
 
       if (provider === 'gemini') {
         if (!apiKey) return this.PROVIDERS.gemini.models;
-        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        const url = AppProperties.endpoints.gemini.models(apiKey);
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
@@ -142,10 +103,10 @@ const LLMClient = {
 
       if (provider === 'claude') {
         if (!apiKey) return this.PROVIDERS.claude.models;
-        const response = await fetch('https://api.anthropic.com/v1/models', {
+        const response = await fetch(AppProperties.endpoints.claude.models, {
           headers: {
             'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
+            'anthropic-version': AppProperties.endpoints.claude.version,
             'anthropic-dangerous-direct-browser-access': 'true',
           }
         });
@@ -169,14 +130,14 @@ const LLMClient = {
 
     let url;
     if (provider === 'local') {
-      let base = (endpoint || 'http://localhost:1234/v1').replace(/\/+$/, '');
+      let base = (endpoint || AppProperties.endpoints.local.defaultBase).replace(/\/+$/, '');
       // Auto-append /v1 if the endpoint doesn't already include it
       if (!base.match(/\/v\d+$/)) {
         base += '/v1';
       }
       url = `${base}/chat/completions`;
     } else {
-      url = 'https://api.openai.com/v1/chat/completions';
+      url = AppProperties.endpoints.openai.chat;
     }
 
     const headers = {
@@ -188,14 +149,16 @@ const LLMClient = {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
+    if (!model) throw new Error('No model selected. Please select a model in settings.');
+
     const body = {
-      model: model || 'gpt-4o-mini',
+      model: model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ],
-      temperature: 0.3,
-      max_tokens: 4096,
+      temperature: AppProperties.defaults.temperature,
+      max_tokens: AppProperties.defaults.maxTokens,
     };
 
     const response = await fetch(url, {
@@ -218,8 +181,9 @@ const LLMClient = {
    */
   async _callGemini(config, systemPrompt, userContent) {
     const { apiKey, model } = config;
-    const modelId = model || 'gemini-2.0-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+    if (!model) throw new Error('No model selected. Please select a model in settings.');
+    
+    const url = AppProperties.endpoints.gemini.chat(model, apiKey);
 
     const body = {
       system_instruction: {
@@ -229,8 +193,8 @@ const LLMClient = {
         parts: [{ text: userContent }],
       }],
       generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 4096,
+        temperature: AppProperties.defaults.temperature,
+        maxOutputTokens: AppProperties.defaults.maxTokens,
       },
     };
 
@@ -254,22 +218,24 @@ const LLMClient = {
    */
   async _callClaude(config, systemPrompt, userContent) {
     const { apiKey, model } = config;
+    if (!model) throw new Error('No model selected. Please select a model in settings.');
 
     const body = {
-      model: model || 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      model: model,
+      temperature: AppProperties.defaults.temperature,
+      max_tokens: AppProperties.defaults.maxTokens,
       system: systemPrompt,
       messages: [
         { role: 'user', content: userContent },
       ],
     };
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(AppProperties.endpoints.claude.chat, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'anthropic-version': AppProperties.endpoints.claude.version,
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify(body),
@@ -289,17 +255,7 @@ const LLMClient = {
    */
   getMaxChars(provider, model, dynamicTokenLimit) {
     // Rough estimate: 1 token ≈ 4 chars, reserve 4096 tokens for output
-    const limits = {
-      'gpt-4o-mini': 128000,
-      'gpt-4o': 128000,
-      'gpt-4-turbo': 128000,
-      'gemini-2.0-flash': 1000000,
-      'gemini-2.5-pro': 1000000,
-      'claude-sonnet-4-20250514': 200000,
-      'claude-3-5-haiku-20241022': 200000,
-    };
-
-    const tokenLimit = dynamicTokenLimit || limits[model] || 32000;
+    const tokenLimit = dynamicTokenLimit || AppProperties.tokenLimits[model] || AppProperties.tokenLimits.default;
     // Use 60% of token limit for input, convert to chars
     return Math.floor(tokenLimit * 0.6 * 4);
   },

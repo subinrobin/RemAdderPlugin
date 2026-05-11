@@ -12,7 +12,7 @@
     <!-- Header -->
     <div class="popup-header">
       <div class="flex items-center gap-md">
-        <div class="logo-mark">RA</div>
+        <img src="../icons/logo.png" class="logo-img" alt="RemAdder">
         <div>
           <h1 class="popup-title">RemAdder</h1>
           <div class="flex items-center gap-xs" id="connection-status">
@@ -62,10 +62,18 @@
       </div>
     </div>
 
-    <!-- Activity Log -->
-    <div class="activity-section" id="activity-section">
-      <div class="text-sm text-muted" id="activity-log">
-        No recent activity
+    <!-- Tasks & Activity -->
+    <div class="activity-section">
+      <div class="flex items-center justify-between mb-sm">
+        <label class="label mb-0">Tasks & Activity</label>
+        <button class="btn btn-ghost btn-xs text-xs" id="clear-tasks-btn">Clear</button>
+      </div>
+      
+      <div class="tasks-container" id="tasks-container">
+        <!-- Tasks will be injected here -->
+        <div class="text-sm text-muted py-md text-center" id="no-tasks-msg">
+          No recent activity
+        </div>
       </div>
     </div>
 

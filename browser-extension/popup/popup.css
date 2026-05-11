@@ -25,18 +25,11 @@ body {
   justify-content: space-between;
 }
 
-.logo-mark {
+.logo-img {
   width: 36px;
   height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--accent-gradient);
+  object-fit: contain;
   border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: #fff;
-  letter-spacing: 0.5px;
   box-shadow: var(--accent-glow);
 }
 
@@ -112,9 +105,95 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  animation: cardEntrance var(--transition-normal) forwards;
+}
+
+.task-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-subtle);
+}
+
+.task-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.task-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.task-detail {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-xs);
+}
+
+.task-time {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.task-status-text {
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-completed { color: var(--color-success); }
+.status-failed { color: var(--color-error); }
+.status-pending { color: var(--color-warning); }
+
+.mb-sm { margin-bottom: var(--space-sm); }
+.mb-0 { margin-bottom: 0; }
+.py-md { padding-top: var(--space-md); padding-bottom: var(--space-md); }
+
+.btn-xs {
+  padding: 2px 8px;
+  font-size: 10px;
+  height: 20px;
 }
 
 /* ── Footer ── */

@@ -3,6 +3,7 @@
   "name": "RemAdder — Web to RemNote Flashcards",
   "description": "Capture web content, generate AI-powered flashcards, and add them directly to RemNote for spaced repetition learning.",
   "version": "1.0.0",
+  "short_name": "RemAdder",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -36,10 +37,11 @@
   ],
   "action": {
     "default_popup": "popup/popup.html",
+    "default_title": "RemAdder",
     "default_icon": {
-      "16": "icons/icon-16.png",
-      "32": "icons/icon-32.png",
-      "48": "icons/icon-48.png"
+      "16": "icons/toolbar-16.png",
+      "32": "icons/toolbar-32.png",
+      "48": "icons/toolbar-48.png"
     }
   },
   "options_page": "settings/settings.html"

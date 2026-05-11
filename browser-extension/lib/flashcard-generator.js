@@ -4,43 +4,24 @@
  */
 
 const FlashcardGenerator = {
-  SYSTEM_PROMPT: `You are an expert educator and spaced-repetition flashcard creator. Analyze web page content and create high-quality flashcards for long-term retention.
+  SYSTEM_PROMPT: null,
+  CONSOLIDATION_PROMPT: null,
 
-INSTRUCTIONS:
-1. Identify important concepts, definitions, facts, processes worth remembering.
-2. Create flashcards using a mix of types:
-   - "basic": Question-answer for definitions, facts, concepts
-   - "cloze": Fill-in-the-blank for key terms within statements
-   - "bidirectional": Two-way cards for terms recalled both directions
-3. Auto-select best type per item. Keep cards concise but complete.
-4. Suggest a hierarchical folder path (e.g., ["Computer Science", "Algorithms"]).
-5. Generate 3-15 flashcards depending on content richness.
+  async _loadPrompts() {
+    if (this.SYSTEM_PROMPT && this.CONSOLIDATION_PROMPT) return;
 
-OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
-{
-  "suggestedPath": ["Topic", "Subtopic"],
-  "flashcards": [
-    { "type": "basic", "front": "What is X?", "back": "X is..." },
-    { "type": "cloze", "text": "X involves {{key term}} which..." },
-    { "type": "bidirectional", "front": "Term", "back": "Definition" }
-  ]
-}`,
-
-  CONSOLIDATION_PROMPT: `You are an expert educator. I have a list of flashcards generated from different sections of the same document. Some flashcards might cover the exact same concept or overlap heavily.
-
-INSTRUCTIONS:
-1. Review the list of flashcards carefully.
-2. Remove any exact duplicates or flashcards that are essentially asking the same thing. Keep only the highest quality, most comprehensive version of each concept.
-3. Keep all unique concepts.
-4. Return the consolidated list of flashcards in the EXACT same JSON format.
-
-OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
-{
-  "flashcards": [
-    { "type": "basic", "front": "What is X?", "back": "X is..." },
-    { "type": "cloze", "text": "X involves {{key term}} which..." }
-  ]
-}`,
+    try {
+      const [system, consolidation] = await Promise.all([
+        fetch(chrome.runtime.getURL('lib/system_prompt.md')).then((r) => r.text()),
+        fetch(chrome.runtime.getURL('lib/consolidation_prompt.md')).then((r) => r.text()),
+      ]);
+      this.SYSTEM_PROMPT = system.trim();
+      this.CONSOLIDATION_PROMPT = consolidation.trim();
+    } catch (err) {
+      console.error('Failed to load prompts from markdown files:', err);
+      throw new Error('LLM Prompts could not be loaded. Please ensure prompts exist in lib/ directory.');
+    }
+  },
 
   async generateFromPage(pageData, llmConfig) {
     const basePrompt = `PAGE TITLE: ${pageData.title}\nURL: ${pageData.url}`;
@@ -55,7 +36,7 @@ OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
   chunkText(text, maxChars) {
     if (!text) return [];
     if (text.length <= maxChars) return [text];
-    
+
     const paragraphs = text.split(/\n\n+/);
     const chunks = [];
     let currentChunk = '';
@@ -65,24 +46,25 @@ OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
         if (currentChunk) chunks.push(currentChunk.trim());
         // If a single paragraph is longer than maxChars, we still push it (or we could sub-split, but keep it simple)
         if (p.length > maxChars) {
-           chunks.push(p.trim());
-           currentChunk = '';
+          chunks.push(p.trim());
+          currentChunk = '';
         } else {
-           currentChunk = p;
+          currentChunk = p;
         }
       } else {
         currentChunk = currentChunk ? currentChunk + '\n\n' + p : p;
       }
     }
     if (currentChunk) chunks.push(currentChunk.trim());
-    
+
     return chunks;
   },
 
   async _generate(basePrompt, textContent, llmConfig, sourceData) {
+    await this._loadPrompts();
     const { provider, model, tokenLimit } = llmConfig;
     const maxChars = LLMClient.getMaxChars(provider, model, tokenLimit);
-    
+
     // Estimate overhead for base prompt and system prompt
     const overhead = basePrompt.length + 500;
     const availableChars = Math.max(1000, maxChars - overhead);
@@ -101,7 +83,7 @@ OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
     });
 
     const results = await Promise.all(promises);
-    
+
     // Reduce: Merge results
     let mergedFlashcards = [];
     let suggestedPath = ['Imported Notes'];
@@ -187,9 +169,7 @@ OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
     if (type === 'basic' && card.front && card.back) {
       return { type: 'basic', front: card.front.trim(), back: card.back.trim() };
     }
-    if (type === 'cloze' && card.text && card.text.includes('{{') && card.text.includes('}}')) {
-      return { type: 'cloze', text: card.text.trim() };
-    }
+
     if (type === 'bidirectional' && card.front && card.back) {
       return { type: 'bidirectional', front: card.front.trim(), back: card.back.trim() };
     }
