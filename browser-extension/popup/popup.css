@@ -25,18 +25,11 @@ body {
   justify-content: space-between;
 }
 
-.logo-mark {
+.logo-img {
   width: 36px;
   height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--accent-gradient);
+  object-fit: contain;
   border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: #fff;
-  letter-spacing: 0.5px;
   box-shadow: var(--accent-glow);
 }
 
