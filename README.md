@@ -24,13 +24,20 @@ RemAdder consists of two connected parts that talk to each other to bypass brows
 
 ## 🚀 Getting Started
 
-### 1. Install the Browser Extension
+### 1. Clone the Repository
+1. Open your terminal and run:
+   ```bash
+   git clone https://github.com/subinrobin/RemAdderPlugin.git
+   cd RemAdderPlugin
+   ```
+
+### 2. Install the Browser Extension
 1. Open Chrome/Edge and navigate to `chrome://extensions/`
 2. Enable **Developer mode** in the top right corner.
 3. Click **Load unpacked**.
 4. Select the `browser-extension` folder from this repository.
 
-### 2. Install the RemNote Companion Plugin
+### 3. Install the RemNote Companion Plugin
 
 #### Option A: Direct Installation (Recommended)
 1. Open [RemNote](https://www.remnote.com).
@@ -52,7 +59,7 @@ RemAdder consists of two connected parts that talk to each other to bypass brows
 4. Go to **Settings > Plugins > Build**.
 5. Click **Develop from Localhost** (ensure it's pointing to `http://localhost:8080`).
 
-### 3. Configure Your LLM
+### 4. Configure Your LLM
 1. Click the **RemAdder (RA) icon** in your browser toolbar to open the extension.
 2. Click the **Settings (⚙️) icon**.
 3. Choose your preferred LLM provider, enter your API key, and configure the model.
