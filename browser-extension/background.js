@@ -4,6 +4,7 @@
 
 // Import libraries (service worker scope)
 importScripts(
+  'lib/properties.js',
   'lib/llm-client.js',
   'lib/flashcard-generator.js',
   'lib/remnote-formatter.js',
@@ -237,10 +238,10 @@ async function getFullConfig() {
   return remadderConfig || {
     activeProvider: '',
     providers: {
-      openai: { apiKey: '', model: 'gpt-4o-mini' },
-      gemini: { apiKey: '', model: 'gemini-2.0-flash' },
-      claude: { apiKey: '', model: 'claude-sonnet-4-20250514' },
-      local: { apiKey: '', model: '', endpoint: 'http://localhost:1234/v1' },
+      openai: { apiKey: '', model: '' },
+      gemini: { apiKey: '', model: '' },
+      claude: { apiKey: '', model: '' },
+      local: { apiKey: '', model: '', endpoint: AppProperties.endpoints.local.defaultBase },
     },
   };
 }
