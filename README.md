@@ -31,6 +31,14 @@ RemAdder consists of two connected parts that talk to each other to bypass brows
 4. Select the `browser-extension` folder from this repository.
 
 ### 2. Install the RemNote Companion Plugin
+
+#### Option A: Direct Installation (Recommended)
+1. Open [RemNote](https://www.remnote.com).
+2. Go to **Settings > Plugins > Browse**.
+3. Search for **"RemAdder Bridge"**.
+4. Click **Install**.
+
+#### Option B: Manual Installation (For Developers)
 1. Open your terminal and navigate to the plugin folder:
    ```bash
    cd remnote-plugin
