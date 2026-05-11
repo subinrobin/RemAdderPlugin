@@ -12,6 +12,52 @@ importScripts(
 );
 
 // ══════════════════════════════════════
+// Task Management
+// ══════════════════════════════════════
+
+const TaskManager = {
+  async getTasks() {
+    const { remadderTasks } = await chrome.storage.local.get('remadderTasks');
+    return remadderTasks || [];
+  },
+
+  async addTask(task) {
+    const tasks = await this.getTasks();
+    const newTask = {
+      id: Math.random().toString(36).substr(2, 9),
+      startTime: Date.now(),
+      status: 'in_progress',
+      ...task
+    };
+    tasks.unshift(newTask);
+    // Keep last 10 tasks
+    const trimmed = tasks.slice(0, 10);
+    await chrome.storage.local.set({ remadderTasks: trimmed });
+    return newTask.id;
+  },
+
+  async updateTask(id, updates) {
+    const tasks = await this.getTasks();
+    const index = tasks.findIndex(t => t.id === id);
+    if (index !== -1) {
+      const task = tasks[index];
+      const isFinishing = (updates.status === 'completed' || updates.status === 'failed') && task.status === 'in_progress';
+      
+      tasks[index] = { 
+        ...task, 
+        ...updates,
+        endTime: isFinishing ? Date.now() : task.endTime
+      };
+      await chrome.storage.local.set({ remadderTasks: tasks });
+    }
+  },
+
+  async clearTasks() {
+    await chrome.storage.local.set({ remadderTasks: [] });
+  }
+};
+
+// ══════════════════════════════════════
 // Context Menu Registration
 // ══════════════════════════════════════
 
@@ -29,6 +75,12 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== 'add-to-remnote') return;
+
+  const taskId = await TaskManager.addTask({
+    type: 'summarize', // Reusing summarize type as it's card generation
+    title: tab.title || 'Selected Text',
+    detail: 'Extracting selection...'
+  });
 
   try {
     // Inject content script if not on RemNote
@@ -51,13 +103,18 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       },
     });
 
-    if (!result?.result) return;
+    if (!result?.result) {
+      await TaskManager.updateTask(taskId, { status: 'failed', detail: 'No text selected' });
+      return;
+    }
 
     const selectionData = result.result;
+    await TaskManager.updateTask(taskId, { detail: 'Generating flashcards...' });
 
     // Get LLM config
     const config = await getLLMConfig();
     if (!config) {
+      await TaskManager.updateTask(taskId, { status: 'failed', detail: 'LLM not configured' });
       openSettingsPage();
       return;
     }
@@ -67,10 +124,21 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
     // Store and open preview
     await chrome.storage.local.set({ pendingFlashcards: flashcardData });
+
+    await TaskManager.updateTask(taskId, { 
+      status: 'completed', 
+      detail: `${flashcardData.flashcards.length} cards generated from selection`,
+      resultSummary: `${flashcardData.flashcards.length} cards`
+    });
+
     chrome.tabs.create({ url: chrome.runtime.getURL('preview/preview.html') });
 
   } catch (error) {
     console.error('RemAdder context menu error:', error);
+    await TaskManager.updateTask(taskId, { 
+      status: 'failed', 
+      detail: error.message 
+    });
   }
 });
 
@@ -97,39 +165,61 @@ const messageHandlers = {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) throw new Error('No active tab found');
 
-    // Inject content script
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['lib/turndown.js', 'lib/Readability.js', 'content.js'],
-    }).catch(() => {});
-
-    // Extract page content
-    const pageData = await chrome.tabs.sendMessage(tab.id, {
-      type: 'REMADDER_EXTRACT_PAGE',
+    const taskId = await TaskManager.addTask({
+      type: 'summarize',
+      title: tab.title || 'Unknown Page',
+      detail: 'Extracting content...'
     });
 
-    if (!pageData || !pageData.content) {
-      throw new Error('Could not extract content from this page');
+    try {
+      // Inject content script
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['lib/turndown.js', 'lib/Readability.js', 'content.js'],
+      }).catch(() => {});
+
+      // Extract page content
+      const pageData = await chrome.tabs.sendMessage(tab.id, {
+        type: 'REMADDER_EXTRACT_PAGE',
+      });
+
+      if (!pageData || !pageData.content) {
+        throw new Error('Could not extract content from this page');
+      }
+
+      await TaskManager.updateTask(taskId, { detail: 'Generating flashcards...' });
+
+      // Get LLM config
+      const config = await getLLMConfig();
+      if (!config) throw new Error('LLM not configured. Please set up in settings.');
+
+      // Generate flashcards
+      const flashcardData = await FlashcardGenerator.generateFromPage(pageData, config);
+
+      // Store for preview page
+      await chrome.storage.local.set({ pendingFlashcards: flashcardData });
+
+      // Save activity log (legacy - kept for compatibility)
+      const activity = `${flashcardData.flashcards.length} cards from "${flashcardData.sourceTitle}" — just now`;
+      await chrome.storage.local.set({ remadderActivity: activity });
+
+      await TaskManager.updateTask(taskId, { 
+        status: 'completed', 
+        detail: `${flashcardData.flashcards.length} cards generated`,
+        resultSummary: `${flashcardData.flashcards.length} cards`
+      });
+
+      // Open preview page
+      chrome.tabs.create({ url: chrome.runtime.getURL('preview/preview.html') });
+
+      return { success: true, flashcardData };
+    } catch (error) {
+      await TaskManager.updateTask(taskId, { 
+        status: 'failed', 
+        detail: error.message 
+      });
+      throw error;
     }
-
-    // Get LLM config
-    const config = await getLLMConfig();
-    if (!config) throw new Error('LLM not configured. Please set up in settings.');
-
-    // Generate flashcards
-    const flashcardData = await FlashcardGenerator.generateFromPage(pageData, config);
-
-    // Store for preview page
-    await chrome.storage.local.set({ pendingFlashcards: flashcardData });
-
-    // Save activity log
-    const activity = `${flashcardData.flashcards.length} cards from "${flashcardData.sourceTitle}" — just now`;
-    await chrome.storage.local.set({ remadderActivity: activity });
-
-    // Open preview page
-    chrome.tabs.create({ url: chrome.runtime.getURL('preview/preview.html') });
-
-    return { success: true, flashcardData };
   },
 
   /**
@@ -160,17 +250,43 @@ const messageHandlers = {
   async 'REMADDER_CREATE_FLASHCARDS'(message) {
     const { flashcards, targetPath, sourceTitle, sourceUrl } = message.payload;
 
-    const connected = await RemNoteBridge.ensureConnection();
-    if (!connected) {
-      // Fallback: copy to clipboard
-      return { success: false, method: 'clipboard', message: 'Plugin not available' };
-    }
-
-    const result = await RemNoteBridge.createFlashcards({
-      flashcards, targetPath, sourceTitle, sourceUrl,
+    const taskId = await TaskManager.addTask({
+      type: 'create_cards',
+      title: sourceTitle || 'New Flashcards',
+      detail: 'Connecting to RemNote...'
     });
 
-    return { success: true, method: 'plugin', ...result };
+    try {
+      const connected = await RemNoteBridge.ensureConnection();
+      if (!connected) {
+        throw new Error('RemNote plugin not available');
+      }
+
+      await TaskManager.updateTask(taskId, { detail: `Sending ${flashcards.length} cards...` });
+
+      const result = await RemNoteBridge.createFlashcards({
+        flashcards, targetPath, sourceTitle, sourceUrl,
+      });
+
+      await TaskManager.updateTask(taskId, { 
+        status: 'completed', 
+        detail: `Successfully added to ${targetPath.length > 0 ? targetPath[targetPath.length-1].name : 'Home'}`,
+        resultSummary: 'Added to RemNote'
+      });
+
+      return { success: true, method: 'plugin', ...result };
+    } catch (error) {
+      await TaskManager.updateTask(taskId, { 
+        status: 'failed', 
+        detail: error.message 
+      });
+      
+      // Fallback: copy to clipboard (legacy behavior)
+      if (error.message === 'RemNote plugin not available') {
+        return { success: false, method: 'clipboard', message: 'Plugin not available' };
+      }
+      throw error;
+    }
   },
 
   /**
@@ -211,6 +327,14 @@ const messageHandlers = {
     const { provider, apiKey, endpoint } = message.payload;
     const models = await LLMClient.fetchModels({ provider, apiKey, endpoint });
     return { models };
+  },
+
+  /**
+   * Clear all background tasks.
+   */
+  async 'REMADDER_CLEAR_TASKS'() {
+    await TaskManager.clearTasks();
+    return { success: true };
   },
 };
 

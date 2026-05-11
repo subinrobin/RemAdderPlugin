@@ -15,7 +15,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statusDot = document.getElementById('status-dot');
   const statusTextEl = document.getElementById('status-text');
   const settingsBtn = document.getElementById('settings-btn');
-  const activityLog = document.getElementById('activity-log');
+  const tasksContainer = document.getElementById('tasks-container');
+  const noTasksMsg = document.getElementById('no-tasks-msg');
+  const clearTasksBtn = document.getElementById('clear-tasks-btn');
 
   // Model lists per provider
   const MODELS = {
@@ -62,11 +64,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── Check plugin connection ──
   checkConnection();
 
-  // ── Load last activity ──
-  const { remadderActivity } = await chrome.storage.local.get('remadderActivity');
-  if (remadderActivity) {
-    activityLog.textContent = remadderActivity;
-  }
+  // ── Load tasks ──
+  renderTasks();
+
+  // ── Listen for task updates ──
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.remadderTasks) {
+      renderTasks(changes.remadderTasks.newValue);
+    }
+  });
 
   // ── Event Listeners ──
 
@@ -81,6 +87,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   summarizeBtn.addEventListener('click', handleSummarize);
+
+  clearTasksBtn.addEventListener('click', async () => {
+    await sendMessage({ type: 'REMADDER_CLEAR_TASKS' });
+    renderTasks([]);
+  });
 
   // ── Functions ──
 
@@ -244,6 +255,57 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function hideError() {
     errorArea.classList.add('hidden');
+  }
+
+  async function renderTasks(tasksData) {
+    const tasks = tasksData || (await chrome.storage.local.get('remadderTasks')).remadderTasks || [];
+    
+    if (tasks.length === 0) {
+      tasksContainer.innerHTML = '';
+      tasksContainer.appendChild(noTasksMsg);
+      noTasksMsg.classList.remove('hidden');
+      return;
+    }
+
+    noTasksMsg.classList.add('hidden');
+    tasksContainer.innerHTML = '';
+
+    tasks.forEach(task => {
+      const taskEl = document.createElement('div');
+      taskEl.className = 'task-item';
+      
+      let icon = '✨';
+      if (task.type === 'create_cards') icon = '🃏';
+      if (task.status === 'in_progress') icon = '<div class="spinner spinner-sm"></div>';
+      if (task.status === 'completed') icon = '✅';
+      if (task.status === 'failed') icon = '❌';
+
+      const timeStr = formatRelativeTime(task.startTime);
+
+      taskEl.innerHTML = `
+        <div class="task-icon">${icon}</div>
+        <div class="task-info">
+          <div class="task-title truncate">${task.title}</div>
+          <div class="task-detail truncate">${task.detail || ''}</div>
+          <div class="task-meta">
+            <span class="task-time">${timeStr}</span>
+            <span class="task-status-text status-${task.status}">${task.status.replace('_', ' ')}</span>
+          </div>
+        </div>
+      `;
+      tasksContainer.appendChild(taskEl);
+    });
+  }
+
+  function formatRelativeTime(timestamp) {
+    const diff = Date.now() - timestamp;
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return 'just now';
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}h ago`;
+    return new Date(timestamp).toLocaleDateString();
   }
 
   function sendMessage(msg) {
