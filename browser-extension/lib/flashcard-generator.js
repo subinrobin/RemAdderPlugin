@@ -4,41 +4,24 @@
  */
 
 const FlashcardGenerator = {
-  SYSTEM_PROMPT: `You are an expert software engineering mentor and spaced-repetition expert. Analyze technical articles, blog posts, documentation, and code blocks to create high-quality flashcards for long-term retention.
+  SYSTEM_PROMPT: null,
+  CONSOLIDATION_PROMPT: null,
 
-INSTRUCTIONS:
-1. Identify critical architectural patterns, implementation details, API usage, code syntax, and core technical definitions.
-2. Create flashcards using these types ONLY:
-   - "basic": Question-answer for definitions, architectural trade-offs, and conceptual logic.
-   - "bidirectional": Two-way cards for terms, API names, or syntax that should be recalled in both directions.
-3. Do NOT create "fill-in-the-blank" or "cloze" cards. This is for deep technical understanding, not rote exam prep.
-4. Keep cards concise but technically precise. Use markdown for code snippets in the 'back' or 'front' fields.
-5. Suggest a hierarchical folder path (e.g., ["Software Engineering", "System Design", "Caching"]).
-6. Generate 5-15 flashcards depending on technical depth.
+  async _loadPrompts() {
+    if (this.SYSTEM_PROMPT && this.CONSOLIDATION_PROMPT) return;
 
-OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
-{
-  "suggestedPath": ["Topic", "Subtopic"],
-  "flashcards": [
-    { "type": "basic", "front": "What are the trade-offs of X?", "back": "1. Pros...\n2. Cons..." },
-    { "type": "bidirectional", "front": "Term", "back": "Definition" }
-  ]
-}`,
-
-  CONSOLIDATION_PROMPT: `You are an expert technical mentor. I have a list of flashcards generated from different sections of the same technical document. Some flashcards might cover the exact same architectural pattern or concept.
-
-INSTRUCTIONS:
-1. Review the list of flashcards carefully.
-2. Remove any exact duplicates or flashcards that are essentially asking the same thing. Keep only the highest quality, most comprehensive version of each concept.
-3. Keep all unique technical concepts.
-4. Return the consolidated list of flashcards in the EXACT same JSON format.
-
-OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
-{
-  "flashcards": [
-    { "type": "basic", "front": "What is X?", "back": "X is..." }
-  ]
-}`,
+    try {
+      const [system, consolidation] = await Promise.all([
+        fetch(chrome.runtime.getURL('lib/system_prompt.md')).then((r) => r.text()),
+        fetch(chrome.runtime.getURL('lib/consolidation_prompt.md')).then((r) => r.text()),
+      ]);
+      this.SYSTEM_PROMPT = system.trim();
+      this.CONSOLIDATION_PROMPT = consolidation.trim();
+    } catch (err) {
+      console.error('Failed to load prompts from markdown files:', err);
+      throw new Error('LLM Prompts could not be loaded. Please ensure prompts exist in lib/ directory.');
+    }
+  },
 
   async generateFromPage(pageData, llmConfig) {
     const basePrompt = `PAGE TITLE: ${pageData.title}\nURL: ${pageData.url}`;
@@ -78,6 +61,7 @@ OUTPUT: Respond with valid JSON ONLY. No markdown, no explanation:
   },
 
   async _generate(basePrompt, textContent, llmConfig, sourceData) {
+    await this._loadPrompts();
     const { provider, model, tokenLimit } = llmConfig;
     const maxChars = LLMClient.getMaxChars(provider, model, tokenLimit);
 
