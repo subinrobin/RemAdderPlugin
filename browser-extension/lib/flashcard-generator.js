@@ -86,10 +86,10 @@ const FlashcardGenerator = {
     });
 
     const extractions = await Promise.all(extractionPromises);
-    const validExtractions = extractions.filter(ex => ex && ex.trim() !== 'NO_TECHNICAL_CONTENT');
+    const validExtractions = extractions.filter(ex => ex && ex.trim() !== 'NO_CONTENT_FOUND');
 
     if (validExtractions.length === 0) {
-      throw new Error('No valid technical content extracted from the page');
+      throw new Error('No valid content extracted from the page');
     }
 
     // Agent 2: Flashcard Creator Agent
