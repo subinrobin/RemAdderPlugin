@@ -86,10 +86,15 @@ const FlashcardGenerator = {
     });
 
     const extractions = await Promise.all(extractionPromises);
-    const validExtractions = extractions.filter(ex => ex && ex.trim() !== 'NO_CONTENT_FOUND');
+    const validExtractions = extractions.filter(ex => {
+      if (!ex) return false;
+      const text = ex.trim();
+      return text !== 'NO_CONTENT_FOUND' && !text.includes('NO_CONTENT_FOUND');
+    });
 
     if (validExtractions.length === 0) {
-      throw new Error('No valid content extracted from the page');
+      console.warn('Extractions received:', extractions);
+      throw new Error('No valid content extracted from the page. The LLM might have filtered it out.');
     }
 
     // Agent 2: Flashcard Creator Agent
