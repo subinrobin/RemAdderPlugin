@@ -4,18 +4,21 @@
  */
 
 const FlashcardGenerator = {
-  SYSTEM_PROMPT: null,
+  EXTRACTOR_PROMPT: null,
+  FLASHCARD_PROMPT: null,
   CONSOLIDATION_PROMPT: null,
 
   async _loadPrompts() {
-    if (this.SYSTEM_PROMPT && this.CONSOLIDATION_PROMPT) return;
+    if (this.EXTRACTOR_PROMPT && this.FLASHCARD_PROMPT && this.CONSOLIDATION_PROMPT) return;
 
     try {
-      const [system, consolidation] = await Promise.all([
-        fetch(chrome.runtime.getURL('lib/system_prompt.md')).then((r) => r.text()),
+      const [extractor, flashcard, consolidation] = await Promise.all([
+        fetch(chrome.runtime.getURL('lib/extractor_prompt.md')).then((r) => r.text()),
+        fetch(chrome.runtime.getURL('lib/flashcard_prompt.md')).then((r) => r.text()),
         fetch(chrome.runtime.getURL('lib/consolidation_prompt.md')).then((r) => r.text()),
       ]);
-      this.SYSTEM_PROMPT = system.trim();
+      this.EXTRACTOR_PROMPT = extractor.trim();
+      this.FLASHCARD_PROMPT = flashcard.trim();
       this.CONSOLIDATION_PROMPT = consolidation.trim();
     } catch (err) {
       console.error('Failed to load prompts from markdown files:', err);
@@ -71,18 +74,42 @@ const FlashcardGenerator = {
 
     const chunks = this.chunkText(textContent, availableChars);
 
-    // Map: Send prompts in parallel
-    const promises = chunks.map(chunk => {
+    // Agent 1: Extractor Agent
+    // Extract key facts and concepts from each chunk
+    const extractionPromises = chunks.map(chunk => {
       const userPrompt = `${basePrompt}\n\nCONTENT SEGMENT:\n${chunk}`;
-      return LLMClient.sendPrompt(llmConfig, this.SYSTEM_PROMPT, userPrompt)
-        .then(res => this._parseResponse(res))
+      return LLMClient.sendPrompt(llmConfig, this.EXTRACTOR_PROMPT, userPrompt)
         .catch(err => {
-          console.error('Failed to parse chunk:', err);
-          return null; // Return null on failure for this chunk
+          console.error('Extractor Agent failed on chunk:', err);
+          return null;
         });
     });
 
-    const results = await Promise.all(promises);
+    const extractions = await Promise.all(extractionPromises);
+    const validExtractions = extractions.filter(ex => {
+      if (!ex) return false;
+      const text = ex.trim();
+      return text !== 'NO_CONTENT_FOUND' && !text.includes('NO_CONTENT_FOUND');
+    });
+
+    if (validExtractions.length === 0) {
+      console.warn('Extractions received:', extractions);
+      throw new Error('No valid content extracted from the page. The LLM might have filtered it out.');
+    }
+
+    // Agent 2: Flashcard Creator Agent
+    // Convert extracted facts into flashcards
+    const flashcardPromises = validExtractions.map(extraction => {
+      const userPrompt = `Extracted Facts:\n${extraction}`;
+      return LLMClient.sendPrompt(llmConfig, this.FLASHCARD_PROMPT, userPrompt)
+        .then(res => this._parseResponse(res))
+        .catch(err => {
+          console.error('Flashcard Creator Agent failed to parse extraction:', err);
+          return null;
+        });
+    });
+
+    const results = await Promise.all(flashcardPromises);
 
     // Reduce: Merge results
     let mergedFlashcards = [];
